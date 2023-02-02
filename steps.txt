@@ -1,0 +1,75 @@
+create ec2 instance red hat
+create 3 volumes at the same region as the ec2
+Attach all 3 volumes to the ec2 instance.
+lunch and connect to the ec2 instance.
+df -h
+sudo gdisk /dev/xvdf and enter n,p,w and y respectively.
+sudo gdisk /dev/xvdg and entern, p,w, and y respectively.
+sudo gdisk /dev/xvdh and enter n,p,w, and y respectively
+lsblk
+sudo yum install lvm2
+sudo lvmdiskscan
+sudo pvcreate /dev/xvdf1
+sudo pvcreate /dev/xvdg1
+sudo pvcreate /dev/xvdh1
+sudo vgcreate webdata-vg /dev/xvdh1 /dev/xvdg1 /dev/xvdf1
+sudo vgs
+sudo lvcreate -n apps-lv -L 14G webdata-vg
+sudo lvcreate -n logs-lv -L 14G webdata-vg
+sudo lvs
+sudo vgdisplay -v #view complete setup - VG, PV, and LV
+sudo lsblk 
+sudo mkfs -t ext4 /dev/webdata-vg/apps-lv
+sudo mkfs -t ext4 /dev/webdata-vg/logs-lv
+sudo mkdir -p /var/www/html
+sudo mkdir -p /home/recovery/logs
+sudo mount /dev/webdata-vg/apps-lv /var/www/html/
+sudo rsync -av /var/log/. /home/recovery/logs/
+sudo mount /dev/webdata-vg/logs-lv /var/log
+sudo rsync -av /home/recovery/logs/. 
+sudo mount /dev/webdata-vg/logs-lv /var/log
+sudo rsync -av /home/recovery/logs/. /var/log
+sudo blkid
+sudo vi /etc/fstab and update
+sudo mount -a to verify mount.
+sudo systemctl daemon-reload to verify all work done. next prepare database server.
+repeat step 6-8 above
+sudo yum install lvm2 -yum
+sudo pvcreate /dev/xvdf1 /dev/xvdg1 /dev/xvdh1
+sudo vgcreate vg-database /dev/xvdf1 /dev/xvdg1 /dev/xvdh1
+sudo vgs
+sudo lvcreate -n db-lv -L 20G vg-database
+sudo lvcreate -n db-lv -L 20G vg-database
+sudo lvcreate -n db-lv -L 20G vg-database
+sudo mkfs.ext4 /dev/vg-database/db-lv
+sudo mount /dev/vg-database/db-lv /db
+sudo blkid and update the database id
+NB: chmod -v u+rw /etc/fstab to make fstab file writeable
+sudo mount -a
+ sudo systemctl daemon-reload
+ sudo yum -y update on database
+ sudo yum update on webserver
+ sudo dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm on the webserver
+ next sudo dnf install -y https://rpms.remirepo.net/enterprise/remi-release-8.rpm
+ sudo dnf module list php.
+ sudo yum -y install wget httpd php php-mysqlnd php-fpm php-json
+ sudo systemctl start php-fpm
+ sudo systemctl enable php-fpm
+ sudo systemctl status php-fpm
+ sudo setsebool -P httpd_execmem
+ sudo systemctl enable httpd
+sudo systemctl start httpd
+mkdir wordpress
+cd wordpress
+sudo wget http://wordpress.org/latest.tar.gz
+sudo tar xzvf latest.tar.gz
+sudo cp -R wp-config-sample.php wp-config.php
+cd ..
+sudo mysql
+CREATE DATABASE wordpress;
+CREATE USER `myuser`@`<Web-Server-Private-IP-Address>` IDENTIFIED BY 'mypass';
+GRANT ALL ON wordpress.* TO 'myuser'@'<Web-Server-Private-IP-Address>';
+FLUSH PRIVILEGES;
+SHOW DATABASES;
+exit
+open MySQL port 3306 on DB Server EC2
